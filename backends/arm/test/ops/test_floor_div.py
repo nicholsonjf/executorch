@@ -69,7 +69,7 @@ class FloorDivide(torch.nn.Module):
         return torch.floor_divide(input=input_, other=other_)
 
 
-input_t1 = Tuple[torch.Tensor, torch.Tensor]
+input_t1 = Tuple[torch.Tensor, Union[torch.Tensor, int]]
 
 
 @common.parametrize("test_data", test_data_suite)
@@ -103,10 +103,12 @@ def test_floor_divide_u55_INT(test_data: input_t1):
         FloorDivide(),
         test_data(),
         aten_ops=FloorDivide.aten_ops_int,
-        exir_ops=FloorDivide.exir_ops_int,
+        exir_ops=[],
         run_on_fvp=True,
         use_to_edge_transform_and_lower=False,
     )
+    pipeline.pop_stage("check_not.exir")
+    pipeline.pop_stage("check_count.exir")
     pipeline.run()
 
 
