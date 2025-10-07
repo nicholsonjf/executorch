@@ -329,7 +329,7 @@ lib.define(
     "Tensor bias_scale, float out_scale, int out_zero_point, Tensor out_multiplier, Tensor out_shift, bool channel_last=False) -> (Tensor out)"
 )
 lib.define(
-    "avg_pool2d(Tensor input, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, "
+    "avg_pool2d(Tensor input, int[2] kernel_size, int[2] stride=[], int[2] padding=[], bool ceil_mode=False, "
     "bool count_include_pad=True, int? divisor_override=None, Tensor? in_zero_point=None, bool channel_last=False) -> (Tensor out)"
 )
 lib.define(
@@ -388,6 +388,19 @@ lib.define(
 )
 lib.define(
     "rope.out(Tensor input, Tensor sin_tensor, Tensor cos_tensor, Tensor? pos, *, Tensor(a!) out) -> Tensor(a!)"
+)
+
+lib.define(
+    "quantized_softmax(Tensor input, Tensor mask, int dim, Tensor in_scale, Tensor in_zero_point, Tensor out_scale, Tensor out_zero_point) -> (Tensor out)"
+)
+lib.define(
+    "quantized_softmax.per_tensor(Tensor input, Tensor mask, int dim, float in_scale, int in_zero_point, float out_scale, int out_zero_point) -> (Tensor out)"
+)
+lib.define(
+    "quantized_softmax.out(Tensor input, Tensor mask, int dim, Tensor in_scale, Tensor in_zero_point, Tensor out_scale, Tensor out_zero_point, *, Tensor(a!) out) -> Tensor (a!)"
+)
+lib.define(
+    "quantized_softmax.per_tensor_out(Tensor input, Tensor mask, int dim, float in_scale, int in_zero_point, float out_scale, int out_zero_point, *, Tensor(a!) out) -> Tensor (a!)"
 )
 
 # Load/store with iDMA. These only exist before memory planning.
@@ -512,7 +525,7 @@ lib.define(
     "Tensor out_multiplier, Tensor out_shift, bool channel_last=False, *, Tensor(a!) out) -> Tensor(a!)"
 )
 lib.define(
-    "avg_pool2d.out(Tensor input, int[2] kernel_size, int[2] stride=[], int[2] padding=0, "
+    "avg_pool2d.out(Tensor input, int[2] kernel_size, int[2] stride=[], int[2] padding=[], "
     "bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None, "
     "Tensor? in_zero_point=None, bool channel_last=False, *, Tensor(a!) out) -> Tensor(a!)"
 )
@@ -2231,10 +2244,10 @@ def avg_pool2d_meta(
     kernel_size: Tuple[int],
     stride: Tuple[int],
     padding: Tuple[int],
-    ceil_mode: bool,
-    count_include_pad: Optional[bool] = True,
+    ceil_mode: bool = False,
+    count_include_pad: bool = True,
     divisor_override: Optional[int] = None,
-    in_zero_point: Optional[int] = None,
+    in_zero_point: Optional[torch.Tensor] = None,
     channel_last: bool = False,
 ) -> torch.Tensor:
     # Use torch native meta kernels when operator semantics are similar
@@ -2523,3 +2536,29 @@ def softmax_f32_f32_meta(
     half_to_float: Optional[bool] = None,
 ) -> torch.Tensor:
     return self.new_empty(self.size(), dtype=self.dtype)
+
+
+@register_fake("cadence::quantized_softmax")
+def quantized_softmax_meta(
+    input: torch.Tensor,
+    mask: torch.Tensor,
+    dim: int,
+    in_scale: torch.Tensor,
+    in_zero_point: torch.Tensor,
+    out_scale: torch.Tensor,
+    out_zero_point: torch.Tensor,
+) -> torch.Tensor:
+    return input.new_empty(input.size(), dtype=input.dtype)
+
+
+@register_fake("cadence::quantized_softmax.per_tensor")
+def quantized_softmax_per_tensor_meta(
+    input: torch.Tensor,
+    mask: torch.Tensor,
+    dim: int,
+    in_scale: float,
+    in_zero_point: int,
+    out_scale: float,
+    out_zero_point: int,
+) -> torch.Tensor:
+    return input.new_empty(input.size(), dtype=input.dtype)
