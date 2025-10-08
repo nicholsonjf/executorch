@@ -6,7 +6,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#include <dlfcn.h>
 #include <executorch/runtime/backend/interface.h>
 #include <executorch/runtime/core/error.h>
 #include <executorch/runtime/core/evalue.h>
@@ -24,6 +23,7 @@
 #include <executorch/backends/aoti/aoti_model_container.h>
 #include <executorch/backends/aoti/common_shims.h>
 #include <executorch/backends/cuda/runtime/shims/memory.h>
+#include <executorch/backends/cuda/runtime/platform/dynamic_lib.h>
 
 namespace executorch {
 namespace backends {
@@ -51,46 +51,47 @@ using executorch::runtime::etensor::Tensor;
 class ET_EXPERIMENTAL CudaBackend final
     : public ::executorch::runtime::BackendInterface {
  private:
-  Error register_shared_library_functions(void* so_handle) const {
+  Error register_shared_library_functions(void* lib_handle) const {
+
+    auto create_with_device_res = get_function(lib_handle, "AOTInductorModelContainerCreateWithDevice");
+    if (!create_with_device_res.ok()) {
+      return create_with_device_res.error();
+    }
     AOTInductorModelContainerCreateWithDevice =
         reinterpret_cast<AOTInductorModelContainerCreateWithDeviceFunc>(
-            dlsym(so_handle, "AOTInductorModelContainerCreateWithDevice"));
-    if (AOTInductorModelContainerCreateWithDevice == nullptr) {
-      ET_LOG(Error, "Failed to load AOTInductorModelContainerCreateWithDevice");
-      return Error::AccessFailed;
-    }
+            create_with_device_res.get());
 
+    auto container_delete_res = get_function(lib_handle, "AOTInductorModelContainerDelete");
+    if (!container_delete_res.ok()) {
+      return container_delete_res.error();
+    }
     AOTInductorModelContainerDelete =
         reinterpret_cast<AOTInductorModelContainerDeleteFunc>(
-            dlsym(so_handle, "AOTInductorModelContainerDelete"));
-    if (AOTInductorModelContainerDelete == nullptr) {
-      ET_LOG(Error, "Failed to load AOTInductorModelContainerDelete");
-      return Error::AccessFailed;
-    }
+            container_delete_res.get());
 
+    auto get_num_inputs_res = get_function(lib_handle, "AOTInductorModelContainerGetNumInputs");
+    if (!get_num_inputs_res.ok()) {
+      return get_num_inputs_res.error();
+    }
     AOTInductorModelContainerGetNumInputs =
         reinterpret_cast<AOTInductorModelContainerGetNumInputsFunc>(
-            dlsym(so_handle, "AOTInductorModelContainerGetNumInputs"));
-    if (AOTInductorModelContainerGetNumInputs == nullptr) {
-      ET_LOG(Error, "Failed to load AOTInductorModelContainerGetNumInputs");
-      return Error::AccessFailed;
-    }
+            get_num_inputs_res.get());
 
+    auto get_num_outputs_res = get_function(lib_handle, "AOTInductorModelContainerGetNumOutputs");
+    if (!get_num_outputs_res.ok()) {
+      return get_num_outputs_res.error();
+    }
     AOTInductorModelContainerGetNumOutputs =
         reinterpret_cast<AOTInductorModelContainerGetNumOutputsFunc>(
-            dlsym(so_handle, "AOTInductorModelContainerGetNumOutputs"));
-    if (AOTInductorModelContainerGetNumOutputs == nullptr) {
-      ET_LOG(Error, "Failed to load AOTInductorModelContainerGetNumOutputs");
-      return Error::AccessFailed;
-    }
+            get_num_outputs_res.get());
 
+    auto container_run_res = get_function(lib_handle, "AOTInductorModelContainerRun");
+    if (!container_run_res.ok()) {
+      return container_run_res.error();
+    }
     AOTInductorModelContainerRun =
         reinterpret_cast<AOTInductorModelContainerRunFunc>(
-            dlsym(so_handle, "AOTInductorModelContainerRun"));
-    if (AOTInductorModelContainerRun == nullptr) {
-      ET_LOG(Error, "Failed to load AOTInductorModelContainerRun");
-      return Error::AccessFailed;
-    }
+            container_run_res.get());
 
     return Error::Ok;
   }
@@ -154,17 +155,17 @@ class ET_EXPERIMENTAL CudaBackend final
     // Finish writing the file to disk
     outfile.close();
 
-    // Load the ELF using dlopen
-    void* so_handle = dlopen(so_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
-    if (so_handle == nullptr) {
-      ET_LOG(Error, "Failed to load shared library: %s", dlerror());
-      return Error::AccessFailed;
+    // Load the lib
+    Result<void*> lib_handle_res = load_library(so_path);
+    if (!lib_handle_res.ok()) {
+      return lib_handle_res.error();
     }
+    void* lib_handle = lib_handle_res.get();
 
     processed->Free();
 
     // Register all shared library functions
-    Error reg_err = register_shared_library_functions(so_handle);
+    Error reg_err = register_shared_library_functions(lib_handle);
     if (reg_err != Error::Ok) {
       return reg_err;
     }
@@ -347,9 +348,11 @@ class ET_EXPERIMENTAL CudaBackend final
       handle->container_handle = nullptr;
     }
 
+
+    auto err = Error::Ok;
     // Now close the shared library
     if (handle->so_handle != nullptr) {
-      dlclose(handle->so_handle);
+      close_library(handle->so_handle);
     }
 
     // Remove the temporary shared library file
