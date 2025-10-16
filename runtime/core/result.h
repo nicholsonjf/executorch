@@ -214,9 +214,10 @@ using ::executorch::runtime::Result;
 } // namespace executor
 } // namespace torch
 
+
 /**
  * Unwrap a Result to obtain its value. If the Result contains an error,
- * propogate the error via trivial function return.
+ * propagate the error via trivial function return.
  *
  * Note: A function using ET_UNWRAP should itself return a Result or Error.
  *
@@ -227,37 +228,26 @@ using ::executorch::runtime::Result;
 #define ET_UNWRAP(result__, ...) ET_INTERNAL_UNWRAP(result__, ##__VA_ARGS__)
 
 // Internal only: Use ET_UNWRAP() instead.
-#define ET_INTERNAL_UNWRAP(...)                                         \
-  ET_INTERNAL_UNWRAP_SELECT(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1) \
-  (__VA_ARGS__)
-
-// Internal only: Use ET_UNWRAP() instead.
-#define ET_INTERNAL_UNWRAP_SELECT(                   \
-    _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, N, ...) \
-  ET_INTERNAL_UNWRAP_##N
-
-// Internal only: Use ET_UNWRAP() instead.
 #define ET_INTERNAL_UNWRAP_1(result__) \
-  ({                                   \
-    auto et_result__ = (result__);     \
-    if (!et_result__.ok()) {           \
-      return et_result__.error();      \
-    }                                  \
-    std::move(*et_result__);           \
-  })
+    ([&]() -> decltype(auto) { \
+        auto et_result__ = (result__); \
+        if (!et_result__.ok()) { \
+            return et_result__.error(); \
+        } \
+        return std::move(*et_result__); \
+    }())
 
-// Internal only: Use ET_UNWRAP() instead.
 #define ET_INTERNAL_UNWRAP_2(result__, message__, ...) \
-  ({                                                   \
-    auto et_result__ = (result__);                     \
-    if (!et_result__.ok()) {                           \
-      ET_LOG(Error, message__, ##__VA_ARGS__);         \
-      return et_result__.error();                      \
-    }                                                  \
-    std::move(*et_result__);                           \
-  })
+    ([&]() -> decltype(auto) { \
+        auto et_result__ = (result__); \
+        if (!et_result__.ok()) { \
+            ET_LOG(Error, message__, ##__VA_ARGS__); \
+            return et_result__.error(); \
+        } \
+        return std::move(*et_result__); \
+    }())
 
-// Internal only: Use ET_UNWRAP() instead.
+// For 3 or more arguments, just use the 2-argument version (message + variadic)
 #define ET_INTERNAL_UNWRAP_3 ET_INTERNAL_UNWRAP_2
 #define ET_INTERNAL_UNWRAP_4 ET_INTERNAL_UNWRAP_2
 #define ET_INTERNAL_UNWRAP_5 ET_INTERNAL_UNWRAP_2
@@ -266,3 +256,15 @@ using ::executorch::runtime::Result;
 #define ET_INTERNAL_UNWRAP_8 ET_INTERNAL_UNWRAP_2
 #define ET_INTERNAL_UNWRAP_9 ET_INTERNAL_UNWRAP_2
 #define ET_INTERNAL_UNWRAP_10 ET_INTERNAL_UNWRAP_2
+
+// Macro to select the correct internal macro based on argument count
+#define ET_INTERNAL_UNWRAP_SELECT(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) ET_INTERNAL_UNWRAP_##N
+
+// Macro to count arguments (works on MSVC, GCC, Clang)
+#define ET_INTERNAL_UNWRAP_COUNT_ARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
+#define ET_INTERNAL_UNWRAP_COUNT_ARGS(...) \
+    ET_INTERNAL_UNWRAP_COUNT_ARGS_IMPL(__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)
+
+// Main dispatcher macro
+#define ET_INTERNAL_UNWRAP(...) \
+    ET_INTERNAL_UNWRAP_SELECT(__VA_ARGS__,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__)
