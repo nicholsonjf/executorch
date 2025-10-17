@@ -355,9 +355,8 @@ Tensor& quantized_embedding_xbit_dtype_out(
   ScalarType params_type = weight_scales.scalar_type();
   ScalarType out_type = out.scalar_type();
 
-  constexpr auto name = "quantized_decomposed::embedding_xbit.dtype_out";
-  ET_SWITCH_TWO_TYPES(Float, Half, params_type, ctx, name, CTYPE_P, [&]() {
-    ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, name, CTYPE_OUT, [&]() {
+  ET_SWITCH_TWO_TYPES(Float, Half, params_type, ctx, "quantized_decomposed::embedding_xbit.dtype_out", CTYPE_P, [&]() {
+    ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, "quantized_decomposed::embedding_xbit.dtype_out", CTYPE_OUT, [&]() {
       embedding_xbit_per_channel<CTYPE_P, CTYPE_OUT>(
           weight,
           weight_scales,

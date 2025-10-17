@@ -76,9 +76,7 @@ Tensor& quantized_mixed_mm_out(
       InvalidArgument,
       out);
 
-  constexpr auto name = "quantized_decomposed::mixed_mm.out";
-
-  ET_SWITCH_TWO_TYPES(Float, Half, in.scalar_type(), ctx, name, CTYPE, [&]() {
+  ET_SWITCH_TWO_TYPES(Float, Half, in.scalar_type(), ctx, "quantized_decomposed::mixed_mm.out", CTYPE, [&]() {
     size_t m = in.size(0);
     size_t n = in.size(1);
     size_t p = weight.size(1);

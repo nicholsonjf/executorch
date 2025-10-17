@@ -257,9 +257,8 @@ Tensor& quantized_embedding_byte_out(
       out_type,
       out);
 
-  constexpr auto name = "quantized_decomposed::embedding_byte.out";
-  ET_SWITCH_TWO_TYPES(Byte, Char, w_type, ctx, name, CTYPE_W, [&]() {
-    ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, name, CTYPE_OUT, [&]() {
+  ET_SWITCH_TWO_TYPES(Byte, Char, w_type, ctx, "quantized_decomposed::embedding_byte.out", CTYPE_W, [&]() {
+    ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, "quantized_decomposed::embedding_byte.out", CTYPE_OUT, [&]() {
       embedding_byte_per_channel<CTYPE_W, CTYPE_OUT, CTYPE_OUT>(
           weight, weight_scales, opt_weight_zero_points, indices, out);
     });
@@ -322,10 +321,9 @@ Tensor& quantized_embedding_byte_dtype_out(
   ScalarType params_type = weight_scales.scalar_type();
   ScalarType out_type = out.scalar_type();
 
-  constexpr auto name = "quantized_decomposed::embedding_byte.dtype_out";
-  ET_SWITCH_TWO_TYPES(Byte, Char, weight_type, ctx, name, CTYPE_W, [&]() {
-    ET_SWITCH_TWO_TYPES(Float, Half, params_type, ctx, name, CTYPE_P, [&]() {
-      ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, name, CTYPE_OUT, [&]() {
+  ET_SWITCH_TWO_TYPES(Byte, Char, weight_type, ctx, "quantized_decomposed::embedding_byte.dtype_out", CTYPE_W, [&]() {
+    ET_SWITCH_TWO_TYPES(Float, Half, params_type, ctx, "quantized_decomposed::embedding_byte.dtype_out", CTYPE_P, [&]() {
+      ET_SWITCH_TWO_TYPES(Float, Half, out_type, ctx, "quantized_decomposed::embedding_byte.dtype_out", CTYPE_OUT, [&]() {
         embedding_byte_per_channel<CTYPE_W, CTYPE_P, CTYPE_OUT>(
             weight, weight_scales, opt_weight_zero_points, indices, out);
       });

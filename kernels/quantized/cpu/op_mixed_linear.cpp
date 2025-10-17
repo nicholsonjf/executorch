@@ -88,10 +88,8 @@ Tensor& quantized_mixed_linear_out(
       InvalidArgument,
       out);
 
-  constexpr auto name = "quantized_decomposed::mixed_linear.out";
-
-  ET_SWITCH_TWO_TYPES(Float, Half, in.scalar_type(), ctx, name, CTYPE, [&]() {
-    ET_SWITCH_FLOAT_TYPES_AND(Half, out_dtype, ctx, name, CTYPE_OUT, [&]() {
+  ET_SWITCH_TWO_TYPES(Float, Half, in.scalar_type(), ctx, "quantized_decomposed::mixed_linear.out", CTYPE, [&]() {
+    ET_SWITCH_FLOAT_TYPES_AND(Half, out_dtype, ctx, "quantized_decomposed::mixed_linear.out", CTYPE_OUT, [&]() {
       size_t m = in.size(0);
       size_t n = in.size(1);
       size_t p = weight.size(0);
