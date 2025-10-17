@@ -511,18 +511,7 @@ install(
   FILES_MATCHING
   PATTERN "*.h"
 )
-install(
-  DIRECTORY runtime/kernel/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/executorch/runtime/kernel
-  FILES_MATCHING
-  PATTERN "*.h"
-)
-install(
-  DIRECTORY runtime/platform/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/executorch/runtime/platform
-  FILES_MATCHING
-  PATTERN "*.h"
-)
+
 install(
   DIRECTORY extension/kernel_util/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/executorch/extension/kernel_util
