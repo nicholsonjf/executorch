@@ -55,29 +55,13 @@ def _validate_ref_impl_exists() -> None:
     _WARN_ONLY = {
         "cadence::quantized_w8a32_linear",
         "cadence::quantized_add",  # We should only support per_tensor variant, should remove
-        "cadence::idma_store",
-        "cadence::idma_load",
         "cadence::_softmax_f32_f32",
         "cadence::requantize",  # We should only support per_tensor variant, should remove
         "cadence::quantized_softmax.per_tensor",
-        "cadence::quantize_per_tensor_asym8u",
-        "cadence::quantize_per_tensor_asym8s",
-        "cadence::dequantize_per_tensor_asym8u",
-        "cadence::dequantize_per_tensor_asym32s",
-        "cadence::dequantize_per_tensor_asym16u",
-        "cadence::linalg_vector_norm",
         "cadence::quantized_conv2d_nchw",  # We should only support per_tensor variant, should remove
-        "cadence::quantize_per_tensor_asym32s",
         "cadence::quantized_relu",  # We should only support per_tensor variant, should remove
-        "cadence::linalg_svd",
         "cadence::quantized_conv2d_nhwc",  # We should only support per_tensor variant, should remove
-        "cadence::idma_copy",
-        "cadence::quantize_per_tensor_asym16u",
-        "cadence::dequantize_per_tensor_asym8s",
-        "cadence::quantize_per_tensor_asym16s",
-        "cadence::dequantize_per_tensor_asym16s",
         "cadence::quantized_softmax",
-        "cadence::idma_wait",
         "cadence::quantized_w8a32_gru",
         "cadence::quantized_layer_norm",  # We should only support per_tensor variant, should remove
     }
@@ -447,7 +431,6 @@ lib.define(
     "im2row.per_tensor(Tensor input, int[2] kernel_size, int[2] dilation, int[2] padding, int[2] stride, "
     "int in_zero_point, bool channel_last=False) -> (Tensor out)"
 )
-lib.define("linalg_vector_norm(Tensor X) -> (Tensor Y)")
 lib.define(
     "linalg_svd(Tensor A, bool full_matrices=False, bool compute_uv=True, str? driver=None) -> (Tensor U, Tensor S, Tensor Vh)"
 )
@@ -603,7 +586,6 @@ lib.define(
 lib.define(
     "fully_connected.out(Tensor input, Tensor weight, Tensor? bias=None, *, Tensor(a!) out) -> Tensor(a!)"
 )
-lib.define("linalg_vector_norm.out(Tensor X, *, Tensor(a!) out) -> Tensor(a!)")
 lib.define(
     "quantized_fully_connected.out(Tensor src, Tensor weight, Tensor bias, int src_zero_point, "
     "Tensor weight_zero_point, Tensor out_multiplier, Tensor out_shift, int out_zero_point, Tensor? offset, *, Tensor(a!) out) -> Tensor(a!)"
@@ -2005,15 +1987,6 @@ def im2row_per_tensor_meta(
         input, kernel_size, dilation, padding, stride, channel_last
     )
     return input.new_empty(output_size, dtype=input.dtype)
-
-
-# Define the abstract implementations of the operators as required
-@register_fake("cadence::linalg_vector_norm")
-def linalg_vector_norm_meta(
-    X: torch.Tensor,
-) -> torch.Tensor:
-    # Output of norm is a scalar, so we return a [] tensor
-    return X.new_empty([], dtype=X.dtype)
 
 
 @register_fake("cadence::linalg_svd")
